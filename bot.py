@@ -107,7 +107,7 @@ async def play_song(ctx, song):
         info = ydl.extract_info(song, download=False)
         url = info['url']
 
-    source = FFmpegPCMAudio(url, before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', options='-vn -sn -dn -ar 48000 -ab 192k -ac 2')
+    source = FFmpegPCMAudio(url, before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', options='-vn -sn -dn -ar 48000 -ab 96k -ac 2')
     ctx.voice_client.play(source, after=lambda e: asyncio.run_coroutine_threadsafe(play_next(ctx), bot.loop))
     
     if bot.firstInQueue:
