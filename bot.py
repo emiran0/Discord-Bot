@@ -6,43 +6,19 @@ import random
 from dotenv import load_dotenv
 import yt_dlp
 import asyncio
-
+from util import join_channel
 # Load environment variables
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
-# Set intents for the bot
 class MusicBot(commands.Bot):
     def __init__(self, command_prefix, intents):
         super().__init__(command_prefix, intents=intents)
         self.connected_since = {}  # Dictionary to track connection time by guild ID
+        self.queue = []
+        self.firstInQueue = True
 
 bot = MusicBot(command_prefix='/', intents=discord.Intents.all())
-
-# Global queue to manage the music playback
-queue = []
-
-async def disconnect_after_timeout(guild_id, timeout):
-    await asyncio.sleep(timeout)  # Wait for 3 hours
-    voice_client = bot.get_guild(guild_id).voice_client
-    if voice_client and (discord.utils.utcnow() - bot.connected_since[guild_id]).total_seconds() >= timeout:
-        print(f"Disconnected from {voice_client.channel.name} due to 3 hours limit.")
-        await voice_client.disconnect()
-
-
-async def join_channel(ctx):
-    if ctx.author.voice is None:
-        await ctx.send("You are not connected to a voice channel.")
-        return None
-    channel = ctx.author.voice.channel
-    if ctx.voice_client is not None:
-        await ctx.voice_client.move_to(channel)
-        return ctx.voice_client
-    queue.clear()
-    voice_client = await channel.connect()
-    bot.connected_since[ctx.guild.id] = discord.utils.utcnow()  # Store the connection time
-    asyncio.create_task(disconnect_after_timeout(ctx.guild.id, 3 * 3600))  # Schedule disconnect after 3 hours
-    return voice_client
 
 @bot.event
 async def on_ready():
@@ -67,13 +43,13 @@ async def halipic(ctx):
 @bot.hybrid_command(name='katil', help='Bot joins the voice channel')
 async def join(ctx):
     await ctx.send("Joining the voice channel...")
-    await join_channel(ctx)
+    await join_channel(ctx, bot, bot.queue)
 
 @bot.hybrid_command(name='ayril', help='Bot leaves the voice channel')
 async def leave(ctx):
     if ctx.voice_client:
         await ctx.send("Leaving the voice channel...")
-        queue.clear()
+        bot.queue.clear()
         if ctx.guild.id in bot.connected_since:
             del bot.connected_since[ctx.guild.id]  # Clear the tracked time
         await ctx.voice_client.disconnect()
@@ -82,7 +58,7 @@ async def leave(ctx):
 
 @bot.hybrid_command(name='oynat', help='Searches and plays music from YouTube.')
 async def play(ctx, *, search: str):
-    voice_client = await join_channel(ctx)
+    voice_client = await join_channel(ctx, bot, bot.queue)
     if voice_client is None:
         return
 
@@ -102,16 +78,18 @@ async def play(ctx, *, search: str):
         title = info['title']
         url = info['webpage_url']
 
-    queue.append((author.name, title, url))  # Store title and URL as a tuple
+    bot.queue.append((author.name, title, url))  # Store title and URL as a tuple
     if not voice_client.is_playing():
         await play_next(ctx)
     else:
         await ctx.send(f"Added to queue: {title} - {url}")
+        bot.firstInQueue = False
+
 async def play_next(ctx):
-    if len(queue) > 0:
-        _, _, song_url = queue.pop(0)
+    if len(bot.queue) > 0:
+        _, _, song_url = bot.queue.pop(0)
         await play_song(ctx, song_url)
-    else:
+    elif not ctx.voice_client:
         await ctx.send("Queue is empty, add more songs!")
 
 async def play_song(ctx, song):
@@ -132,8 +110,10 @@ async def play_song(ctx, song):
     source = FFmpegPCMAudio(url, before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', options='-vn -sn -dn -ignore_unknown')
     ctx.voice_client.play(source, after=lambda e: asyncio.run_coroutine_threadsafe(play_next(ctx), bot.loop))
     
-
-    await ctx.send(f"Now playing: {info.get('title', 'Unknown title')}\n {info.get('webpage_url', 'Unknown URL')}")
+    if bot.firstInQueue:
+        await ctx.send(f"Now playing: {info.get('title', 'Unknown title')}\n {info.get('webpage_url', 'Unknown URL')}")
+    else:
+        await ctx.send(f"Now playing: {info.get('title', 'Unknown title')}")
 
 @bot.hybrid_command(name='durdur', help='Pauses the currently playing audio.')
 async def pause(ctx):
@@ -161,17 +141,18 @@ async def skip(ctx):
 
 @bot.hybrid_command(name='sira', help='Shows the current music queue.')
 async def show_queue(ctx):
-    if queue:
-        message = "Current queue:\n" + "\n".join(f"{idx + 1}. {title} Added By : {author}" for idx, (author,title, url) in enumerate(queue))
+    if bot.queue:
+        message = "Current queue:\n" + "\n".join(f"{idx + 1}. {title} Added By : {author}" for idx, (author,title, url) in enumerate(bot.queue))
         await ctx.send(message)
     else:
+        bot.firstInQueue = True
         await ctx.send("The music queue is currently empty.")
 
 @bot.hybrid_command(name='siradan-cikar', help='Removes a specific song from the queue by its position.')
 async def remove(ctx, position: int):
-    if len(queue) >= position > 0:  # Ensure the position is within the valid range
+    if len(bot.queue) >= position > 0:  # Ensure the position is within the valid range
         # Remove the song at the specified position (adjust for zero-based index)
-        removed_song = queue.pop(position - 1)
+        removed_song = bot.queue.pop(position - 1)
         await ctx.send(f"Removed song {position} from the queue.")
     else:
         await ctx.send("Invalid position. Please enter a valid song number.")

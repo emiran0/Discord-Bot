@@ -2,3 +2,4 @@
 .env
 images
 Dockerfile
+__pycache__
