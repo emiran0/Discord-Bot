@@ -79,7 +79,7 @@ async def play(ctx, *, search: str):
         url = info['webpage_url']
 
     bot.queue.append((author.name, title, url))  # Store title and URL as a tuple
-    if not voice_client.is_playing():
+    if not (voice_client.is_playing() or voice_client.is_paused()):
         await play_next(ctx)
     else:
         await ctx.send(f"Added to queue: {title} - {url}")
