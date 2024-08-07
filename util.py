@@ -11,7 +11,7 @@ async def disconnect_after_timeout(bot, ctx, timeout):
         await voice_client.disconnect()
 
 
-async def join_channel(ctx, bot, queue):
+async def join_channel(ctx, bot):
     if ctx.author.voice is None:
         await ctx.send("You are not connected to a voice channel.")
         return None
@@ -19,7 +19,7 @@ async def join_channel(ctx, bot, queue):
     if ctx.voice_client is not None:
         await ctx.voice_client.move_to(channel)
         return ctx.voice_client
-    queue.clear()
+    bot.clear_queue(ctx.guild.id)
     bot.firstInQueue = True
     voice_client = await channel.connect()
     bot.connected_since[ctx.guild.id] = discord.utils.utcnow()  # Store the connection time

@@ -14,11 +14,41 @@ load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
 class MusicBot(commands.Bot):
+
     def __init__(self, command_prefix, intents):
         super().__init__(command_prefix, intents=intents)
         self.connected_since = {}  # Dictionary to track connection time by guild ID
-        self.queue = []
+        self.queue = {}
         self.firstInQueue = True
+
+    def get_queue(self, guild_id):
+        if guild_id not in self.queue:
+            self.queue[guild_id] = []
+        return self.queue[guild_id]
+    
+    def add_to_queue(self, guild_id, item):
+        """Add an item to the guild-specific queue."""
+        self.get_queue(guild_id).append(item)
+    
+    def pop_from_queue(self, guild_id):
+        """Pop the first item from the guild-specific queue."""
+        queue = self.get_queue(guild_id)
+        if queue:
+            return queue.pop(0)
+        else:
+            raise IndexError("Queue is empty, cannot pop.")
+
+    def clear_queue(self, guild_id):
+        """Clear the guild-specific queue."""
+        self.get_queue(guild_id).clear()
+
+    def remove_from_queue(self, guild_id, position):
+        """Remove an item from a specific position in the guild-specific queue."""
+        queue = self.get_queue(guild_id)
+        if len(queue) > position >= 0:
+            return queue.pop(position)
+        else:
+            raise IndexError("Queue position out of range.")
 
 bot = MusicBot(command_prefix='/', intents=discord.Intents.all())
 
@@ -45,13 +75,16 @@ async def halipic(ctx):
 @bot.hybrid_command(name='katil', help='Bot joins the voice channel')
 async def join(ctx):
     await ctx.send("Joining the voice channel...")
-    await join_channel(ctx, bot, bot.queue)
+    await join_channel(ctx, bot)
 
 @bot.hybrid_command(name='ayril', help='Bot leaves the voice channel')
 async def leave(ctx):
+    queue = bot.get_queue(ctx.guild.id)
+    if queue is None:
+        queue = []
     if ctx.voice_client:
         await ctx.send("Leaving the voice channel...")
-        bot.queue.clear()
+        queue.clear()
         if ctx.guild.id in bot.connected_since:
             del bot.connected_since[ctx.guild.id]  # Clear the tracked time
         await ctx.voice_client.disconnect()
@@ -60,7 +93,15 @@ async def leave(ctx):
 
 @bot.hybrid_command(name='oynat', help='Searches and plays music from YouTube.')
 async def play(ctx, *, search: str):
-    voice_client = await join_channel(ctx, bot, bot.queue)
+
+    if ctx.voice_client is None:
+        isFirstSongPlayed = True
+    else:
+        isFirstSongPlayed = False
+
+    queue = bot.queue.get(ctx.guild.id)
+    voice_client = await join_channel(ctx, bot)
+    print("connected")
     if voice_client is None:
         return
 
@@ -71,7 +112,15 @@ async def play(ctx, *, search: str):
         'quiet': True
     }
 
-    await ctx.send(f"Searching for '{search}' on YouTube...")
+    searchEmbed = discord.Embed(
+        title="Searching...",
+        color=discord.Colour.dark_purple(),
+        description=f"Searching for '{search}' on YouTube..."
+    )
+
+    searchEmbed.set_thumbnail(url=bot.user.display_avatar.url)
+
+    embedMessage = await ctx.send(embed=searchEmbed)
 
     author = ctx.author
 
@@ -83,36 +132,47 @@ async def play(ctx, *, search: str):
         sec_duration = info['duration']
 
     duration = str(datetime.timedelta(seconds = int(sec_duration)))
-    bot.queue.append((author.name, title, url, thumbnail, duration))  # Store title and URL as a tuple
+        
+    songTuple = (author.name, title, url, thumbnail, duration, isFirstSongPlayed)  # Store title and URL as a tuple
+    bot.add_to_queue(ctx.guild.id, songTuple)
 
     if not (voice_client.is_playing() or voice_client.is_paused()):
 
-        await play_next(ctx)
+        await play_next(ctx, embedMessage)
 
     else:
 
-        embed = discord.Embed(
+        addQueueEmbed = discord.Embed(
         title=title,
         color=discord.Colour.dark_purple(),
         description=f"[Watch on YouTube]({url})"
         )
 
-        embed.set_author(name=f"Added to Queue:")
-        embed.set_thumbnail(url=thumbnail)
-        embed.insert_field_at(1, name="Video Duration", value=f"> Duration: `{duration}`", inline=True)
-        embed.insert_field_at(2, name="Added by", value=f"> Added by: {author.name}", inline=True)
-        embed.set_footer(text=f"Addded to Position: {len(bot.queue)}")
+        addQueueEmbed.set_author(name=f"Added to Queue:")
+        addQueueEmbed.set_thumbnail(url=thumbnail)
+        addQueueEmbed.insert_field_at(1, name="Video Duration", value=f"> Duration: `{duration}`", inline=True)
+        addQueueEmbed.insert_field_at(2, name="Added by", value=f"> Added by: {author.name}", inline=True)
+        addQueueEmbed.set_footer(text=f"Addded to Position: {len(bot.get_queue(ctx.guild.id))}")
 
-        await ctx.send(embed=embed)
+        await embedMessage.edit(embed=addQueueEmbed)
 
-async def play_next(ctx):
-    if len(bot.queue) > 0:
-        playInfoTuple = bot.queue.pop(0)
-        await play_song(ctx, playInfoTuple)
+async def play_next(ctx, embedToEdit):
+
+    queue = bot.get_queue(ctx.guild.id)
+
+    if len(queue) > 0:
+
+        playInfoTuple = bot.pop_from_queue(ctx.guild.id)
+        await play_song(ctx, playInfoTuple, embedToEdit)
+
     elif not ctx.voice_client:
+
         await ctx.send("Queue is empty, add more songs!")
 
-async def play_song(ctx, playInfo):
+
+async def play_song(ctx, playInfo, embedToEdit):
+    queue = bot.get_queue(ctx.guild.id)
+    
     ydl_opts = {
         'format': 'bestaudio',
         'postprocessors': [{
@@ -123,29 +183,33 @@ async def play_song(ctx, playInfo):
         'quiet': False
     }
 
-    requester, title, song_url, thumbnail_url, vid_duration = playInfo
+    requester, title, song_url, thumbnail_url, vid_duration, isFirstSongPlayed = playInfo
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(song_url, download=False)
         url = info['url']
 
     source = FFmpegPCMAudio(url, before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', options='-vn -sn -dn -ar 48000 -ab 96k -ac 2')
-    ctx.voice_client.play(source, after=lambda e: asyncio.run_coroutine_threadsafe(play_next(ctx), bot.loop))
+    ctx.voice_client.play(source, after=lambda e: asyncio.run_coroutine_threadsafe(play_next(ctx, embedToEdit), bot.loop))
 
-    embed = discord.Embed(
+    nowPlayingEmbed = discord.Embed(
         title=title,
         color=discord.Colour.dark_purple(),
         description=f"[Watch on YouTube]({song_url})"
         )
 
-    embed.set_author(name=f"Now Playing:")
-    embed.set_thumbnail(url=bot.user.display_avatar.url)
-    embed.insert_field_at(1, name="Video Duration", value=f"> Duration: `{vid_duration}`", inline=True)
-    embed.insert_field_at(2, name="Added by", value=f"> Added by: {requester}", inline=True)
-    embed.set_image(url=thumbnail_url)
-    embed.set_footer(text=f"Playing Next:\n > {bot.queue[0][1] if bot.queue else 'No more songs in queue'}")
+    nowPlayingEmbed.set_author(name=f"Now Playing:")
+    nowPlayingEmbed.set_thumbnail(url=bot.user.display_avatar.url)
+    nowPlayingEmbed.insert_field_at(1, name="Video Duration", value=f"> Duration: `{vid_duration}`", inline=True)
+    nowPlayingEmbed.insert_field_at(2, name="Added by", value=f"> Added by: {requester}", inline=True)
+    nowPlayingEmbed.set_image(url=thumbnail_url)
+    nowPlayingEmbed.set_footer(text=f"Playing Next:\n > {queue[0][1] if queue else 'No more songs in queue'}")
 
-    await ctx.send(embed=embed)
+    if isFirstSongPlayed:
+        await embedToEdit.edit(embed=nowPlayingEmbed)
+    else:
+        await ctx.send(embed=nowPlayingEmbed)
+    
 
 @bot.hybrid_command(name='durdur', help='Pauses the currently playing audio.')
 async def pause(ctx):
@@ -173,16 +237,19 @@ async def skip(ctx):
 
 @bot.hybrid_command(name='sira', help='Shows the current music queue.')
 async def show_queue(ctx):
-    if bot.queue:
 
-        first10_queue = bot.queue[:5]
+    queue = bot.get_queue(ctx.guild.id)
+    
+    if queue:
+
+        first5_queue = queue[:5]
 
         embed = discord.Embed(
             title="Current Queue:",
             color=discord.Colour.dark_purple()
         )
 
-        embed.add_field(name="", value=f"{"\n".join(f"{idx + 1}. {title} --> Added By : {author}" for idx, (author,title, _, _, _) in enumerate(first10_queue))}", inline=False)
+        embed.add_field(name="", value=f"{"\n".join(f"{idx + 1}. {title} --> Added By : {author}" for idx, (author,title, _, _, _, _) in enumerate(first5_queue))}", inline=False)
         embed.set_thumbnail(url=bot.user.display_avatar.url)
         # message = "Current queue:\n" + "\n".join(f"{idx + 1}. {title} Added By : {author}" for idx, (author,title, _) in enumerate(bot.queue))
         await ctx.send(embed=embed)
@@ -194,9 +261,10 @@ async def show_queue(ctx):
 
 @bot.hybrid_command(name='siradan-cikar', help='Removes a specific song from the queue by its position.')
 async def remove(ctx, position: int):
-    if len(bot.queue) >= position > 0:  # Ensure the position is within the valid range
+    queue = bot.queue.get(ctx.guild.id)
+    if len(queue) >= position > 0:  # Ensure the position is within the valid range
         # Remove the song at the specified position (adjust for zero-based index)
-        removed_song = bot.queue.pop(position - 1)
+        removed_song = queue.pop(position - 1)
         await ctx.send(f"Removed song {position} from the queue.")
     else:
         await ctx.send("Invalid position. Please enter a valid song number.")
