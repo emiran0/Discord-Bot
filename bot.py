@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 import yt_dlp
 import asyncio
 from util import join_channel
+import datetime
+
 # Load environment variables
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
@@ -77,22 +79,40 @@ async def play(ctx, *, search: str):
         info = ydl.extract_info(f"ytsearch:{search}", download=False)['entries'][0]
         title = info['title']
         url = info['webpage_url']
+        thumbnail = info['thumbnail']
+        sec_duration = info['duration']
 
-    bot.queue.append((author.name, title, url))  # Store title and URL as a tuple
+    duration = str(datetime.timedelta(seconds = int(sec_duration)))
+    bot.queue.append((author.name, title, url, thumbnail, duration))  # Store title and URL as a tuple
+
     if not (voice_client.is_playing() or voice_client.is_paused()):
+
         await play_next(ctx)
+
     else:
-        await ctx.send(f"Added to queue: {title} - {url}")
-        bot.firstInQueue = False
+
+        embed = discord.Embed(
+        title=title,
+        color=discord.Colour.dark_purple(),
+        description=f"[Watch on YouTube]({url})"
+        )
+
+        embed.set_author(name=f"Added to Queue:")
+        embed.set_thumbnail(url=thumbnail)
+        embed.insert_field_at(1, name="Video Duration", value=f"> Duration: `{duration}`", inline=True)
+        embed.insert_field_at(2, name="Added by", value=f"> Added by: {author.name}", inline=True)
+        embed.set_footer(text=f"Addded to Position: {len(bot.queue)}")
+
+        await ctx.send(embed=embed)
 
 async def play_next(ctx):
     if len(bot.queue) > 0:
-        _, _, song_url = bot.queue.pop(0)
-        await play_song(ctx, song_url)
+        playInfoTuple = bot.queue.pop(0)
+        await play_song(ctx, playInfoTuple)
     elif not ctx.voice_client:
         await ctx.send("Queue is empty, add more songs!")
 
-async def play_song(ctx, song):
+async def play_song(ctx, playInfo):
     ydl_opts = {
         'format': 'bestaudio',
         'postprocessors': [{
@@ -103,17 +123,29 @@ async def play_song(ctx, song):
         'quiet': False
     }
 
+    requester, title, song_url, thumbnail_url, vid_duration = playInfo
+
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(song, download=False)
+        info = ydl.extract_info(song_url, download=False)
         url = info['url']
 
     source = FFmpegPCMAudio(url, before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', options='-vn -sn -dn -ar 48000 -ab 96k -ac 2')
     ctx.voice_client.play(source, after=lambda e: asyncio.run_coroutine_threadsafe(play_next(ctx), bot.loop))
-    
-    if bot.firstInQueue:
-        await ctx.send(f"Now playing: {info.get('title', 'Unknown title')}\n {info.get('webpage_url', 'Unknown URL')}")
-    else:
-        await ctx.send(f"Now playing: {info.get('title', 'Unknown title')}")
+
+    embed = discord.Embed(
+        title=title,
+        color=discord.Colour.dark_purple(),
+        description=f"[Watch on YouTube]({song_url})"
+        )
+
+    embed.set_author(name=f"Now Playing:")
+    embed.set_thumbnail(url=bot.user.display_avatar.url)
+    embed.insert_field_at(1, name="Video Duration", value=f"> Duration: `{vid_duration}`", inline=True)
+    embed.insert_field_at(2, name="Added by", value=f"> Added by: {requester}", inline=True)
+    embed.set_image(url=thumbnail_url)
+    embed.set_footer(text=f"Playing Next:\n > {bot.queue[0][1] if bot.queue else 'No more songs in queue'}")
+
+    await ctx.send(embed=embed)
 
 @bot.hybrid_command(name='durdur', help='Pauses the currently playing audio.')
 async def pause(ctx):
@@ -142,9 +174,21 @@ async def skip(ctx):
 @bot.hybrid_command(name='sira', help='Shows the current music queue.')
 async def show_queue(ctx):
     if bot.queue:
-        message = "Current queue:\n" + "\n".join(f"{idx + 1}. {title} Added By : {author}" for idx, (author,title, url) in enumerate(bot.queue))
-        await ctx.send(message)
+
+        first10_queue = bot.queue[:5]
+
+        embed = discord.Embed(
+            title="Current Queue:",
+            color=discord.Colour.dark_purple()
+        )
+
+        embed.add_field(name="", value=f"{"\n".join(f"{idx + 1}. {title} --> Added By : {author}" for idx, (author,title, _, _, _) in enumerate(first10_queue))}", inline=False)
+        embed.set_thumbnail(url=bot.user.display_avatar.url)
+        # message = "Current queue:\n" + "\n".join(f"{idx + 1}. {title} Added By : {author}" for idx, (author,title, _) in enumerate(bot.queue))
+        await ctx.send(embed=embed)
+
     else:
+        
         bot.firstInQueue = True
         await ctx.send("The music queue is currently empty.")
 
