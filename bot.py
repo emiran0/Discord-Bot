@@ -116,7 +116,6 @@ async def play(ctx, *, search: str):
 
     queue = bot.queue.get(ctx.guild.id)
     voice_client = await join_channel(ctx, bot)
-    print("connected")
     if voice_client is None:
         return
 
@@ -188,11 +187,11 @@ async def play_song(ctx, playInfo, embedToEdit):
     queue = bot.get_queue(ctx.guild.id)
     
     ydl_opts = {
-        'format': 'bestaudio',
+        'format': 'm4a',
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'm4a',
-            'preferredquality': '196k',
+            'preferredquality': '192k',
         }],
         'quiet': False
     }
@@ -203,7 +202,7 @@ async def play_song(ctx, playInfo, embedToEdit):
         info = ydl.extract_info(song_url, download=False)
         url = info['url']
 
-    source = FFmpegPCMAudio(url, before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', options='-vn -sn -dn -ar 48000 -ab 96k -ac 2')
+    source = FFmpegPCMAudio(url, before_options='-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', options='-vn -sn -dn -ar 48000 -ab 64k -ac 2')
     ctx.voice_client.play(source, after=lambda e: asyncio.run_coroutine_threadsafe(play_next(ctx, embedToEdit), bot.loop))
 
     nowPlayingEmbed = discord.Embed(
@@ -233,7 +232,6 @@ async def pause(ctx):
     if ctx.voice_client and ctx.voice_client.is_playing():
 
         currentSongTuple = bot.get_currently_playing(ctx.guild.id)
-        print(currentSongTuple)
 
         pauseEmbed = discord.Embed(
             title=f"{currentSongTuple[1]} is Paused",
