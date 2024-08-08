@@ -67,15 +67,50 @@ async def on_ready():
     await bot.tree.sync()
     # await tree.sync(guild=discord.Object(id=346798764435963904))
 
+@bot.hybrid_command(name='help', help='Shows commands list.')
+async def help(ctx):
+
+    if isinstance(ctx.channel, discord.DMChannel):
+        await ctx.send("I can only be accessed in a server.")
+        return
+
+    helpEmbed = discord.Embed(
+        title="Commands List",
+        color=discord.Colour.dark_purple()
+    )
+
+    helpEmbed.set_thumbnail(url=bot.user.display_avatar.url)
+    helpEmbed.add_field(name="/help", value="Shows commands list.", inline=False)
+    helpEmbed.add_field(name="/legend", value="Responds with a legendary music YouTube link.", inline=False)
+    helpEmbed.add_field(name="/halifoto", value="Posts a random photo.", inline=False)
+    helpEmbed.add_field(name="/katil", value="Bot joins the voice channel.", inline=False)
+    helpEmbed.add_field(name="/ayril", value="Bot leaves the voice channel.", inline=False)
+    helpEmbed.add_field(name="/oynat", value="Searches and plays music from YouTube.", inline=False)
+    helpEmbed.add_field(name="/durdur", value="Pauses the currently playing audio.", inline=False)
+    helpEmbed.add_field(name="/devam", value="Resumes the paused audio.", inline=False)
+    helpEmbed.add_field(name="/atla", value="Skips the currently playing song.", inline=False)
+    helpEmbed.add_field(name="/sira", value="Shows the current music queue.", inline=False)
+    helpEmbed.add_field(name="/siradan-cikar", value="Removes a specific song from the queue by its position.", inline=False)
+
+    helpEmbed.set_thumbnail(url=bot.user.display_avatar.url)
+    await ctx.send(embed=helpEmbed)
+
 @bot.hybrid_command(name='legend', help='Responds with a legendary music YouTube link.')
 async def legend(ctx):
+
+    if isinstance(ctx.channel, discord.DMChannel):
+        await ctx.send("I can only be accessed in a server.")
+        return
 
     response = 'https://youtu.be/cvav25BQ9Ec?si=98AxA8lc4EvhRLKI&t=20'
     await ctx.send(response)
 
-
 @bot.hybrid_command(name='halifoto', help='Posts a random photo.')
 async def halipic(ctx):
+
+    if isinstance(ctx.channel, discord.DMChannel):
+        await ctx.send("I can only be accessed in a server.")
+        return
 
     directory_path = 'images'  # Adjust this to your directory path
     image_files = os.listdir(directory_path)
