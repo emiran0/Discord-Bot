@@ -601,8 +601,8 @@ async def wordle(ctx, *, guess: str):
     holderGuessedWordsList = playerInfoDict['playerWords']
     holderGuessedWordsList.append(formattedGuess)
     holderScore = playerInfoDict['playerScore']
-
-    if (playerInfoDict['lastPlayData'] == todaysDate + datetime.timedelta(days=1)):
+    print(playerInfoDict['lastPlayData'] + datetime.timedelta(days=1))
+    if (playerInfoDict['lastPlayData'] + datetime.timedelta(days=1) <= todaysDate):
         del bot.wordleGuesses[ctx.author.id]
         await ctx.send(f"Your unfinished Wordle game has been reset. Please start a new game by `/wordle` command.")
         return

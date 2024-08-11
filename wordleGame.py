@@ -1,13 +1,13 @@
 import requests
 
-
+# Wordle API info : https://gitlab.com/MoofyWoofy/wordle-api
 def get_today_word():
 
     url = 'https://wordle-api-kappa.vercel.app/answer'
     response = requests.get(url)
     data = response.json()
     return data['word']
-
+print(get_today_word())
 def get_wordle_guess(word):
 
     url = f'https://wordle-api-kappa.vercel.app/{word}'
