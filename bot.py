@@ -9,6 +9,7 @@ import asyncio
 from util import join_channel
 from fetchLoLData import get_lol_info
 import datetime
+from wordleGame import get_wordle_guess, get_today_word
 
 # Load environment variables
 load_dotenv()
@@ -25,6 +26,8 @@ class MusicBot(commands.Bot):
         self.firstInQueue = True
         self.currently_playing = {}
         self.lolUserStatDict = {}
+        self.wordleGuesses = {}
+        self.worldeEmbeds = {}
 
     def get_queue(self, guild_id):
         if guild_id not in self.queue:
@@ -72,8 +75,7 @@ class MusicBot(commands.Bot):
         return self.get_server_rankings(guild_id)
 
     def insert_lol_user_stat(self,guild_id, summoner_name, statDict):
-        if summoner_name not in self.get_server_rankings(guild_id):
-            self.get_server_rankings(guild_id)[summoner_name] = statDict
+        self.get_server_rankings(guild_id)[summoner_name] = statDict
     
     def remove_lol_user_stat(self, guild_id):
         self.get_server_rankings(guild_id).clear()
@@ -538,6 +540,118 @@ async def lolrank_clear(ctx):
     removedEmbed.set_footer(text="Use `/lolstat` to check stats again and add to ranking list.")
 
     await ctx.send(embed=removedEmbed)
+
+@bot.hybrid_command(name='wordle', help='Starts a new wordle game.')
+async def wordle(ctx, *, guess: str):
+
+    if isinstance(ctx.channel, discord.DMChannel):
+        await ctx.send("I can only be accessed in a server.")
+        return
+
+    guessTypeLetterEmojisSource = ['🟥', '🟨', '🟩']
+    holderGuessTypeList = []
+    todaysDate = datetime.date.today()
+    print(todaysDate)
+    isCorrect = False
+
+    if ctx.author.id in bot.wordleGuesses:
+        playerInfoDict = bot.wordleGuesses[ctx.author.id]
+    else:
+        playerGuessesList = []
+        playerWordsList = []
+        playerScore = 0
+
+        playgroundEmbed = discord.Embed(
+        title="Wordle Game",
+        color=discord.Colour.dark_purple(),
+        description="Guess the 5-letter word."
+        )
+
+        playgroundToEdit = await ctx.send(embed=playgroundEmbed)
+
+        playerInfoDict = {
+            'playerWords': playerWordsList,
+            'playerGuesses': playerGuessesList,
+            'playerScore': playerScore,
+            'lastPlayData': todaysDate,
+            'playgroundEmbed': playgroundToEdit
+        }
+
+        bot.wordleGuesses[ctx.author.id] = playerInfoDict
+    
+
+    if len(guess) != 5:
+        await ctx.send("Please enter a 5-letter word.")
+        return
+    elif not guess.isalpha():
+        await ctx.send("Please enter a word with only alphabetic characters.")
+        return
+    
+    formattedGuess = guess.lower()
+
+    guessDetails = get_wordle_guess(formattedGuess)
+    isCorrect = guessDetails['correctGuess']
+
+    if guessDetails['validGuess'] == False:
+        await ctx.send("Please enter a valid word.")
+        return
+
+    playerInfoDict = bot.wordleGuesses[ctx.author.id]
+    holderGuessTypeList = playerInfoDict['playerGuesses']
+    holderGuessedWordsList = playerInfoDict['playerWords']
+    holderGuessedWordsList.append(formattedGuess)
+    holderScore = playerInfoDict['playerScore']
+
+    if (playerInfoDict['lastPlayData'] == todaysDate + datetime.timedelta(days=1)):
+        del bot.wordleGuesses[ctx.author.id]
+        await ctx.send(f"Your unfinished Wordle game has been reset. Please start a new game by `/wordle` command.")
+        return
+    if len(holderGuessedWordsList) > 6:
+        await ctx.send(f"Your Wordle game has ended. Try again tomorrow. Your score is: `{holderScore}`")
+    
+    correctGuessTypeList = [2, 2, 2, 2, 2]
+
+    if correctGuessTypeList in holderGuessTypeList:
+        await ctx.send(f"Your Wordle game has ended. Try again tomorrow. Your score is: `{holderScore}`")
+        return
+
+    tempList = []
+
+    if isCorrect:
+
+        tempList = correctGuessTypeList
+    else:
+
+        for guess in guessDetails['letterGuessTypeId']:
+            tempList.append(guess['letterTypeId'])
+    
+    holderGuessTypeList.append(tempList)
+    
+    embedMessage = discord.Embed(
+        title=f"Wordle Game for {ctx.author.name}",
+        color=discord.Colour.dark_purple()
+    )
+
+    embedMessage.set_thumbnail(url=bot.user.display_avatar.url)
+    embedMessage.set_footer(text="🟥: Incorrect Letter | 🟨: Correct Letter in Wrong Position | 🟩: Correct Letter in Correct Position")
+    idx = 0
+    for typeList in holderGuessTypeList:
+        embedMessage.add_field(name=f"{holderGuessedWordsList[idx]}", value=f"{''.join([guessTypeLetterEmojisSource[guess] for guess in typeList])}", inline=False)
+        idx +=1
+
+    if isCorrect:
+        holderScore += 1
+        embedMessage.add_field(name=f"🎉🎉🎉🎉🎉", value=f"Congratulations! You have guessed the word correctly.", inline=False)
+        embedMessage.add_field(name="", value=f"Your current score is: `{holderScore}`", inline=False)
+        playerInfoDict['playerScore'] = holderScore
+        playerInfoDict['lastPlayData'] = todaysDate
+    
+    await playerInfoDict['playgroundEmbed'].delete()
+
+    playerInfoDict['playerGuesses'] = holderGuessTypeList
+    playerInfoDict['playerWords'] = holderGuessedWordsList
+    bot.wordleGuesses[ctx.author.id] = playerInfoDict
+    playerInfoDict['playgroundEmbed'] = await ctx.send(embed=embedMessage)
 
 
 bot.run(TOKEN)
