@@ -6,7 +6,7 @@ def get_today_word():
     url = 'https://wordle-api-kappa.vercel.app/answer'
     response = requests.get(url)
     data = response.json()
-    print(data['word'])
+    return data['word']
 
 def get_wordle_guess(word):
 

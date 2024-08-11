@@ -608,6 +608,7 @@ async def wordle(ctx, *, guess: str):
         return
     if len(holderGuessedWordsList) > 6:
         await ctx.send(f"Your Wordle game has ended. Try again tomorrow. Your score is: `{holderScore}`")
+        return
     
     correctGuessTypeList = [2, 2, 2, 2, 2]
 
@@ -638,6 +639,10 @@ async def wordle(ctx, *, guess: str):
     for typeList in holderGuessTypeList:
         embedMessage.add_field(name=f"{holderGuessedWordsList[idx]}", value=f"{''.join([guessTypeLetterEmojisSource[guess] for guess in typeList])}", inline=False)
         idx +=1
+    if len(holderGuessedWordsList) == 6 and (not isCorrect):
+        embedMessage.add_field(name="", value=f"Your Wordle game has ended. Todays word was **{get_today_word()}**. \nTry again tomorrow. Your score is: `{holderScore}`", inline=False)
+        playerInfoDict['playerScore'] = holderScore
+        playerInfoDict['lastPlayData'] = todaysDate
 
     if isCorrect:
         holderScore += 1
