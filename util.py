@@ -1,5 +1,6 @@
 import discord
 import asyncio
+import requests
 
 async def disconnect_after_timeout(bot, ctx, timeout):
     await asyncio.sleep(timeout)  # Wait for 3 hours

@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 import yt_dlp
 import asyncio
 from util import join_channel
+from fetchLoLData import get_lol_info
 import datetime
 
 # Load environment variables
@@ -23,6 +24,7 @@ class MusicBot(commands.Bot):
         self.queue = {}
         self.firstInQueue = True
         self.currently_playing = {}
+        self.lolUserStatDict = {}
 
     def get_queue(self, guild_id):
         if guild_id not in self.queue:
@@ -60,6 +62,22 @@ class MusicBot(commands.Bot):
             return queue.pop(position)
         else:
             raise IndexError("Queue position out of range.")
+    
+    def get_server_rankings(self, guild_id):
+        if guild_id not in self.lolUserStatDict:
+            self.lolUserStatDict[guild_id] = {}
+        return self.lolUserStatDict[guild_id]
+    
+    def get_lol_user_stat(self, guild_id):
+        return self.get_server_rankings(guild_id)
+
+    def insert_lol_user_stat(self,guild_id, summoner_name, statDict):
+        if summoner_name not in self.get_server_rankings(guild_id):
+            self.get_server_rankings(guild_id)[summoner_name] = statDict
+    
+    def remove_lol_user_stat(self, guild_id):
+        self.get_server_rankings(guild_id).clear()
+
 
 bot = MusicBot(command_prefix='/', intents=discord.Intents.all())
 
@@ -85,6 +103,7 @@ async def help(ctx):
     helpEmbed.add_field(name="/help", value="Shows commands list.", inline=False)
     helpEmbed.add_field(name="/legend", value="Responds with a legendary music YouTube link.", inline=False)
     helpEmbed.add_field(name="/halifoto", value="Posts a random photo.", inline=False)
+    helpEmbed.add_field(name="/lolstat", value="Gives the win rate and KDA of the given summonner name and tag (no hashtags).", inline=False)
     helpEmbed.add_field(name="/katil", value="Bot joins the voice channel.", inline=False)
     helpEmbed.add_field(name="/ayril", value="Bot leaves the voice channel.", inline=False)
     helpEmbed.add_field(name="/oynat", value="Searches and plays music from YouTube.", inline=False)
@@ -413,6 +432,112 @@ async def remove(ctx, position: int):
 
         noRemoveQueueEmbed.set_thumbnail(url=bot.user.display_avatar.url)
         await ctx.send(embed=noRemoveQueueEmbed)
+
+@bot.hybrid_command(name='lolstat', help='Gives the win rate and KDA of the given summonner name and tag (no hashtags).')
+async def lolstat(ctx, *, summoner_name: str, summoner_tag:str):
+    
+    if isinstance(ctx.channel, discord.DMChannel):
+        await ctx.send("I can only be accessed in a server.")
+        return
+    
+    if '#' in summoner_tag:
+        await ctx.send("Please enter the summoner tag without the hashtag.")
+        return
+    
+    initalEmbed = discord.Embed(
+        title="Fetching LoL Stats...",
+        color=discord.Colour.dark_purple(),
+        description=f"Fetching LoL stats for `{summoner_name}`..."
+    )
+
+    initalEmbed.set_thumbnail(url=bot.user.display_avatar.url)
+    initalEmbed.set_footer(text="Please wait...")
+    embedMessage = await ctx.send(embed=initalEmbed)
+
+    try:
+        statsDict = await get_lol_info(summoner_name, summoner_tag)
+    except Exception as e:
+        errorEmbed = discord.Embed(
+            title="Error Fetching LoL Stats",
+            color=discord.Colour.dark_purple(),
+            description=f"Fetching LoL stats for `{summoner_name}` failed. Check the summoner name and tag."
+        )
+
+        errorEmbed.set_thumbnail(url=bot.user.display_avatar.url)
+        errorEmbed.set_footer(text="Please try again after a minute.")
+        await embedMessage.edit(embed=errorEmbed)
+        return
+    
+    lolEmbed = discord.Embed(
+        title=f"LoL Stats for {summoner_name} #{summoner_tag}",
+        color=discord.Colour.dark_purple(),
+        description=f"Stats of last 20 matches."
+    )
+
+    lolEmbed.set_thumbnail(url=bot.user.display_avatar.url)
+    lolEmbed.insert_field_at(1, name="", value=f"> Win Rate: **{statsDict['winRate']}%**", inline=False)
+    lolEmbed.insert_field_at(2, name="", value=f"> KDA: **{statsDict['kdaOverAll']}**", inline=False)
+    lolEmbed.insert_field_at(3, name="", value=f"> Average Minion: **{statsDict['minionsKilledAverage']}**", inline=False)
+    lolEmbed.insert_field_at(4, name="", value=f"> Average Vision Score: **{statsDict['visionScoreAverage']}**", inline=False)
+    lolEmbed.insert_field_at(5, name="", value=f"> Popular Pick: **{(statsDict['mostlyPlayedChampion'])}**", inline=False)
+    lolEmbed.insert_field_at(6, name="", value=f"> Average Damage Dealt: **{statsDict['averageDamageDealt']}**", inline=False)
+
+    await embedMessage.edit(embed=lolEmbed)
+
+    bot.insert_lol_user_stat(ctx.guild.id, summoner_name, statsDict)
+
+    print(bot.lolUserStatDict)
+
+@bot.hybrid_command(name='lolrank', help='Gives the rankings of previously checked summoner name.')
+async def lolrank(ctx):
+
+    if isinstance(ctx.channel, discord.DMChannel):
+        await ctx.send("I can only be accessed in a server.")
+        return
+
+    allPlayerDict = bot.get_lol_user_stat(ctx.guild.id)
+
+    if not allPlayerDict:
+        await ctx.send("No player stats found.")
+        return
+    
+    rankEmbed = discord.Embed(
+        title="LoL Stats Rankings",
+        color=discord.Colour.dark_purple(),
+        description="Rankings of all the players in last 20 games."
+    )
+
+    rankEmbed.set_thumbnail(url=bot.user.display_avatar.url)
+    rankEmbed.set_footer(text="Rankings are based on win rate.")
+    rankList = sorted(allPlayerDict.items(), key=lambda x: x[1]['winRate'], reverse=True)
+    print(rankList)
+    rankEmbed.add_field(name="", value=f"{'\n'.join(f'**{idx + 1}. {player}** - `Win Rate: {stats["winRate"]}`' for idx, (player, stats) in enumerate(rankList))}", inline=False)
+
+    await ctx.send(embed=rankEmbed)
+
+@bot.hybrid_command(name='lolrank_clear', help='Removes the stats of the given summoner name.')
+async def lolrank_clear(ctx):
+    
+    if isinstance(ctx.channel, discord.DMChannel):
+        await ctx.send("I can only be accessed in a server.")
+        return
+
+    if ctx.guild.id not in bot.lolUserStatDict:
+        await ctx.send("No player stats found.")
+        return
+    
+    bot.remove_lol_user_stat(ctx.guild.id)
+
+    removedEmbed = discord.Embed(
+        title="LoL Stats Cleared",
+        color=discord.Colour.dark_purple(),
+        description="All player stats have been removed."
+    )
+
+    removedEmbed.set_thumbnail(url=bot.user.display_avatar.url)
+    removedEmbed.set_footer(text="Use `/lolstat` to check stats again and add to ranking list.")
+
+    await ctx.send(embed=removedEmbed)
 
 
 bot.run(TOKEN)
