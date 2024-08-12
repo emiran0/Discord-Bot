@@ -5,3 +5,4 @@ Dockerfile
 __pycache__
 .DS_Store
 data.json
+halifileks-discordbot-firebase-adminsdk.json

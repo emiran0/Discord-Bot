@@ -10,6 +10,7 @@ from util import join_channel
 from fetchLoLData import get_lol_info
 import datetime
 from wordleGame import get_wordle_guess, get_today_word
+from firestore_manager import post_command_data
 
 # Load environment variables
 load_dotenv()
@@ -96,6 +97,17 @@ async def help(ctx):
         await ctx.send("I can only be accessed in a server.")
         return
 
+    userID = ctx.author.id
+    userName = ctx.author.name
+    command_string = 'yardim'
+    command_time = datetime.datetime.now()
+    inputString = None
+    serverID = ctx.guild.id
+    serverName = ctx.guild.name
+    channelID = ctx.channel.id
+    channelName = ctx.channel.name
+    post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
+
     helpEmbed = discord.Embed(
         title="Commands List",
         color=discord.Colour.dark_purple()
@@ -125,6 +137,17 @@ async def legend(ctx):
         await ctx.send("I can only be accessed in a server.")
         return
 
+    userID = ctx.author.id
+    userName = ctx.author.name
+    command_string = 'legend'
+    command_time = datetime.datetime.now()
+    inputString = None
+    serverID = ctx.guild.id
+    serverName = ctx.guild.name
+    channelID = ctx.channel.id
+    channelName = ctx.channel.name
+    post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
+
     response = 'https://youtu.be/cvav25BQ9Ec?si=98AxA8lc4EvhRLKI&t=20'
     await ctx.send(response)
 
@@ -134,6 +157,17 @@ async def halipic(ctx):
     if isinstance(ctx.channel, discord.DMChannel):
         await ctx.send("I can only be accessed in a server.")
         return
+
+    userID = ctx.author.id
+    userName = ctx.author.name
+    command_string = 'halifoto'
+    command_time = datetime.datetime.now()
+    inputString = None
+    serverID = ctx.guild.id
+    serverName = ctx.guild.name
+    channelID = ctx.channel.id
+    channelName = ctx.channel.name
+    post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
 
     directory_path = 'images'  # Adjust this to your directory path
     image_files = os.listdir(directory_path)
@@ -150,6 +184,17 @@ async def join(ctx):
 @bot.hybrid_command(name='ayril', help='Bot leaves the voice channel')
 async def leave(ctx):
     queue = bot.get_queue(ctx.guild.id)
+
+    userID = ctx.author.id
+    userName = ctx.author.name
+    command_string = 'ayril'
+    command_time = datetime.datetime.now()
+    inputString = None
+    serverID = ctx.guild.id
+    serverName = ctx.guild.name
+    channelID = ctx.channel.id
+    channelName = ctx.channel.name
+    post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
     
     if ctx.voice_client:
 
@@ -164,7 +209,7 @@ async def leave(ctx):
 
         await ctx.send("I'm not in a voice channel.")
 
-@bot.hybrid_command(name='oynat', help='Searches and plays music from YouTube.')
+@bot.hybrid_command(name='oynat', help='Searches and joins to channel to plays music from YouTube.')
 async def play(ctx, *, search: str):
 
     if ctx.voice_client is None:
@@ -176,6 +221,17 @@ async def play(ctx, *, search: str):
     voice_client = await join_channel(ctx, bot)
     if voice_client is None:
         return
+
+    userID = ctx.author.id
+    userName = ctx.author.name
+    command_string = 'oynat'
+    command_time = datetime.datetime.now()
+    inputString = search
+    serverID = ctx.guild.id
+    serverName = ctx.guild.name
+    channelID = ctx.channel.id
+    channelName = ctx.channel.name
+    post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
 
     ydl_opts = {
         'format': 'bestaudio',
@@ -288,6 +344,17 @@ async def play_song(ctx, playInfo, embedToEdit):
 @bot.hybrid_command(name='durdur', help='Pauses the currently playing audio.')
 async def pause(ctx):
 
+    userID = ctx.author.id
+    userName = ctx.author.name
+    command_string = 'durdur'
+    command_time = datetime.datetime.now()
+    inputString = None
+    serverID = ctx.guild.id
+    serverName = ctx.guild.name
+    channelID = ctx.channel.id
+    channelName = ctx.channel.name
+    post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
+
     if ctx.voice_client and ctx.voice_client.is_playing():
 
         currentSongTuple = bot.get_currently_playing(ctx.guild.id)
@@ -316,6 +383,17 @@ async def pause(ctx):
 @bot.hybrid_command(name='devam', help='Resumes the paused audio.')
 async def resume(ctx):
 
+    userID = ctx.author.id
+    userName = ctx.author.name
+    command_string = 'devam'
+    command_time = datetime.datetime.now()
+    inputString = None
+    serverID = ctx.guild.id
+    serverName = ctx.guild.name
+    channelID = ctx.channel.id
+    channelName = ctx.channel.name
+    post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
+
     if ctx.voice_client and ctx.voice_client.is_paused():
 
         currentSongTuple = bot.get_currently_playing(ctx.guild.id)
@@ -342,6 +420,17 @@ async def resume(ctx):
 
 @bot.hybrid_command(name='atla', help='Skips the currently playing song.')
 async def skip(ctx):
+
+    userID = ctx.author.id
+    userName = ctx.author.name
+    command_string = 'atla'
+    command_time = datetime.datetime.now()
+    inputString = None
+    serverID = ctx.guild.id
+    serverName = ctx.guild.name
+    channelID = ctx.channel.id
+    channelName = ctx.channel.name
+    post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
 
     if ctx.voice_client and (ctx.voice_client.is_playing() or ctx.voice_client.is_paused()):
 
@@ -379,6 +468,17 @@ async def skip(ctx):
 async def show_queue(ctx):
 
     queue = bot.get_queue(ctx.guild.id)
+
+    userID = ctx.author.id
+    userName = ctx.author.name
+    command_string = 'sira'
+    command_time = datetime.datetime.now()
+    inputString = None
+    serverID = ctx.guild.id
+    serverName = ctx.guild.name
+    channelID = ctx.channel.id
+    channelName = ctx.channel.name
+    post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
     
     if queue:
 
@@ -410,6 +510,17 @@ async def remove(ctx, position: int):
     queue = bot.queue.get(ctx.guild.id)
     if len(queue) >= position > 0:  # Ensure the position is within the valid range
         # Remove the song at the specified position (adjust for zero-based index)
+
+        userID = ctx.author.id
+        userName = ctx.author.name
+        command_string = 'siradan_cikar'
+        command_time = datetime.datetime.now()
+        inputString = position
+        serverID = ctx.guild.id
+        serverName = ctx.guild.name
+        channelID = ctx.channel.id
+        channelName = ctx.channel.name
+        post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
 
         removed_song = queue.pop(position - 1)
 
@@ -446,6 +557,18 @@ async def lolstat(ctx, *, summoner_name: str, summoner_tag:str):
         await ctx.send("Please enter the summoner tag without the hashtag.")
         return
     
+    input_str = f'{summoner_name}#{summoner_tag}'
+    userID = ctx.author.id
+    userName = ctx.author.name
+    command_string = 'lolstat'
+    command_time = datetime.datetime.now()
+    inputString = input_str
+    serverID = ctx.guild.id
+    serverName = ctx.guild.name
+    channelID = ctx.channel.id
+    channelName = ctx.channel.name
+    post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
+
     initalEmbed = discord.Embed(
         title="Fetching LoL Stats...",
         color=discord.Colour.dark_purple(),
@@ -497,6 +620,17 @@ async def lolrank(ctx):
         await ctx.send("I can only be accessed in a server.")
         return
 
+    userID = ctx.author.id
+    userName = ctx.author.name
+    command_string = 'lolrank'
+    command_time = datetime.datetime.now()
+    inputString = None
+    serverID = ctx.guild.id
+    serverName = ctx.guild.name
+    channelID = ctx.channel.id
+    channelName = ctx.channel.name
+    post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
+
     allPlayerDict = bot.get_lol_user_stat(ctx.guild.id)
 
     if not allPlayerDict:
@@ -524,6 +658,17 @@ async def lolrank_clear(ctx):
         await ctx.send("I can only be accessed in a server.")
         return
 
+    userID = ctx.author.id
+    userName = ctx.author.name
+    command_string = 'lolrank_clear'
+    command_time = datetime.datetime.now()
+    inputString = None
+    serverID = ctx.guild.id
+    serverName = ctx.guild.name
+    channelID = ctx.channel.id
+    channelName = ctx.channel.name
+    post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
+
     if ctx.guild.id not in bot.lolUserStatDict:
         await ctx.send("No player stats found.")
         return
@@ -548,6 +693,17 @@ async def wordle(ctx, *, guess: str):
         await ctx.send("I can only be accessed in a server.")
         return
 
+    userID = ctx.author.id
+    userName = ctx.author.name
+    command_string = 'wordle'
+    command_time = datetime.datetime.now()
+    inputString = guess
+    serverID = ctx.guild.id
+    serverName = ctx.guild.name
+    channelID = ctx.channel.id
+    channelName = ctx.channel.name
+    post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
+    
     guessTypeLetterEmojisSource = ['🟥', '🟨', '🟩']
     holderGuessTypeList = []
     todaysDate = datetime.date.today()
@@ -575,11 +731,19 @@ async def wordle(ctx, *, guess: str):
             'playerGuesses': playerGuessesList,
             'playerScore': playerScore,
             'lastPlayData': todaysDate,
-            'playgroundEmbed': playgroundToEdit
+            'playgroundEmbed': playgroundToEdit,
+            'initalCtxObject': ctx
         }
 
         bot.wordleGuesses[ctx.author.name] = playerInfoDict
-    
+
+    if ctx.channel.id != playerInfoDict['initalCtxObject'].channel.id:
+        if ctx.channel.guild.id == playerInfoDict['initalCtxObject'].guild.id:
+            await ctx.send(f"Please play the Wordle game in the same channel where you started the game. The channel you started: `{playerInfoDict['initalCtxObject'].channel.name}`.")
+            return
+        else:
+            await ctx.send(f"Please play the Wordle game in the same server where you started the game. The server you started: `{playerInfoDict['initalCtxObject'].guild.name}` | `#{playerInfoDict['initalCtxObject'].channel.name}`.")
+            return
 
     if len(guess) != 5:
         await ctx.send("Please enter a 5-letter word to.")
@@ -614,11 +778,11 @@ async def wordle(ctx, *, guess: str):
             'playerGuesses': [],
             'playerScore': holderScore,
             'lastPlayData': todaysDate,
-            'playgroundEmbed': None
+            'playgroundEmbed': None,
+            'initalCtxObject': None
         }
         await ctx.send(f"Your unfinished Wordle game has been reset. Please start a new game by `/wordle` command.")
         return
-
     
     correctGuessTypeList = [2, 2, 2, 2, 2]
 
@@ -685,7 +849,7 @@ async def wordle(ctx, *, guess: str):
         gameEndEmbed = discord.Embed(
             title=f"Wordle Game of `{ctx.author.name}`",
             color=discord.Colour.dark_purple(),
-            description=f"Your Wordle game has ended. \nTry again tomorrow. Your score is: `{holderScore}`\n**WORDLE Game Preview:**\n"
+            description=f"Your Wordle game has ended. \nTry again tomorrow. Your score is: `{holderScore}`\n\n**WORDLE Game Preview:**\n"
         )
 
         gameEndEmbed.set_thumbnail(url=bot.user.display_avatar.url)
@@ -702,6 +866,17 @@ async def wordle_rankings(ctx):
     if isinstance(ctx.channel, discord.DMChannel):
         await ctx.send("I can only be accessed in a server.")
         return
+
+    userID = ctx.author.id
+    userName = ctx.author.name
+    command_string = 'wordle_rankings'
+    command_time = datetime.datetime.now()
+    inputString = None
+    serverID = ctx.guild.id
+    serverName = ctx.guild.name
+    channelID = ctx.channel.id
+    channelName = ctx.channel.name
+    post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
 
     allPlayerDict = bot.wordleGuesses
 
