@@ -564,7 +564,7 @@ async def wordle(ctx, *, guess: str):
         playgroundEmbed = discord.Embed(
         title="Wordle Game",
         color=discord.Colour.dark_purple(),
-        description="Guess the 5-letter word."
+        description=f"Guess the 5-letter word. \n `{ctx.author.name}` you have **6** guesses to find today's **WORDLE**."
         )
 
         playgroundToEdit = await ctx.send(embed=playgroundEmbed)
@@ -581,7 +581,7 @@ async def wordle(ctx, *, guess: str):
     
 
     if len(guess) != 5:
-        await ctx.send("Please enter a 5-letter word.")
+        await ctx.send("Please enter a 5-letter word to.")
         return
     elif not guess.isalpha():
         await ctx.send("Please enter a word with only alphabetic characters.")
@@ -601,14 +601,23 @@ async def wordle(ctx, *, guess: str):
     holderGuessedWordsList = playerInfoDict['playerWords']
     holderGuessedWordsList.append(formattedGuess)
     holderScore = playerInfoDict['playerScore']
-    print(playerInfoDict['lastPlayData'] + datetime.timedelta(days=1))
-    if (playerInfoDict['lastPlayData'] + datetime.timedelta(days=1) <= todaysDate):
-        del bot.wordleGuesses[ctx.author.id]
-        await ctx.send(f"Your unfinished Wordle game has been reset. Please start a new game by `/wordle` command.")
-        return
+
     if len(holderGuessedWordsList) > 6:
         await ctx.send(f"Your Wordle game has ended. Try again tomorrow. Your score is: `{holderScore}`")
         return
+
+    print(playerInfoDict['lastPlayData'] + datetime.timedelta(days=1))
+    if (playerInfoDict['lastPlayData'] + datetime.timedelta(days=1) <= todaysDate):
+        bot.wordleGuesses[ctx.author.id] = {
+            'playerWords': [],
+            'playerGuesses': [],
+            'playerScore': holderScore,
+            'lastPlayData': todaysDate,
+            'playgroundEmbed': None
+        }
+        await ctx.send(f"Your unfinished Wordle game has been reset. Please start a new game by `/wordle` command.")
+        return
+
     
     correctGuessTypeList = [2, 2, 2, 2, 2]
 
@@ -650,13 +659,13 @@ async def wordle(ctx, *, guess: str):
         embedMessage.add_field(name="", value=f"Your current score is: `{holderScore}`", inline=False)
         playerInfoDict['playerScore'] = holderScore
         playerInfoDict['lastPlayData'] = todaysDate
-    
-    await playerInfoDict['playgroundEmbed'].delete()
 
+    embedToDelete = playerInfoDict['playgroundEmbed']
     playerInfoDict['playerGuesses'] = holderGuessTypeList
     playerInfoDict['playerWords'] = holderGuessedWordsList
     bot.wordleGuesses[ctx.author.id] = playerInfoDict
     playerInfoDict['playgroundEmbed'] = await ctx.send(embed=embedMessage)
-
+    if embedToDelete and len(holderGuessedWordsList) > 1:
+        await embedToDelete.delete()
 
 bot.run(TOKEN)
