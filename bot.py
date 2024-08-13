@@ -822,7 +822,8 @@ async def wordle(ctx, *, guess: str):
         isFinished = True
 
     if isCorrect:
-        holderScore += 1
+        scoreMultiplier = 7 - len(holderGuessedWordsList)
+        holderScore += scoreMultiplier
         embedMessage.add_field(name=f"🎉🎉🎉🎉🎉", value=f"Congratulations! You have guessed the word correctly.", inline=False)
         embedMessage.add_field(name="", value=f"Your current score is: `{holderScore}`", inline=False)
         embedMessage.set_footer(text='THIS MESSAGE WILL BE DELETED IN 10 SECONDS.')
@@ -834,8 +835,8 @@ async def wordle(ctx, *, guess: str):
     embedToDelete = playerInfoDict['playgroundEmbed']
     playerInfoDict['playerGuesses'] = holderGuessTypeList
     playerInfoDict['playerWords'] = holderGuessedWordsList
-    bot.wordleGuesses[ctx.author.name] = playerInfoDict
     playerInfoDict['playgroundEmbed'] = await ctx.send(embed=embedMessage)
+    bot.wordleGuesses[ctx.author.name] = playerInfoDict
 
     if embedToDelete and len(holderGuessedWordsList) > 1:
         await embedToDelete.delete()
@@ -858,6 +859,7 @@ async def wordle(ctx, *, guess: str):
             gameEndEmbed.add_field(name="", value=f"{''.join([guessTypeLetterEmojisSource[guess] for guess in typeList])}", inline=False)
 
         playerInfoDict['playgroundEmbed'] =  await ctx.send(embed=gameEndEmbed)
+        bot.wordleGuesses[ctx.author.name] = playerInfoDict
     
 
 @bot.hybrid_command(name='wordle_rankings', help='Shows the Wordle game rankings based on scores from all servers.')
@@ -891,7 +893,7 @@ async def wordle_rankings(ctx):
     )
 
     rankEmbed.set_thumbnail(url=bot.user.display_avatar.url)
-    rankEmbed.set_footer(text="Rankings are based on scores.")
+    rankEmbed.set_footer(text=f"Score Range: (0-6) per game. Earlier you finish, higher the score.")
     rankList = sorted(allPlayerDict.items(), key=lambda x: x[1]['playerScore'], reverse=True)
     print(rankList)
 
