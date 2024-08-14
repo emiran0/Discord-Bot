@@ -106,7 +106,7 @@ async def help(ctx):
     serverName = ctx.guild.name
     channelID = ctx.channel.id
     channelName = ctx.channel.name
-    post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
+    await post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
 
     helpEmbed = discord.Embed(
         title="Commands List",
@@ -146,7 +146,7 @@ async def legend(ctx):
     serverName = ctx.guild.name
     channelID = ctx.channel.id
     channelName = ctx.channel.name
-    post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
+    await post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
 
     response = 'https://youtu.be/cvav25BQ9Ec?si=98AxA8lc4EvhRLKI&t=20'
     await ctx.send(response)
@@ -167,7 +167,7 @@ async def halipic(ctx):
     serverName = ctx.guild.name
     channelID = ctx.channel.id
     channelName = ctx.channel.name
-    post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
+    await post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
 
     directory_path = 'images'  # Adjust this to your directory path
     image_files = os.listdir(directory_path)
@@ -194,7 +194,7 @@ async def leave(ctx):
     serverName = ctx.guild.name
     channelID = ctx.channel.id
     channelName = ctx.channel.name
-    post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
+    await post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
     
     if ctx.voice_client:
 
@@ -231,7 +231,7 @@ async def play(ctx, *, search: str):
     serverName = ctx.guild.name
     channelID = ctx.channel.id
     channelName = ctx.channel.name
-    post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
+    await post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
 
     ydl_opts = {
         'format': 'bestaudio',
@@ -353,7 +353,7 @@ async def pause(ctx):
     serverName = ctx.guild.name
     channelID = ctx.channel.id
     channelName = ctx.channel.name
-    post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
+    await post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
 
     if ctx.voice_client and ctx.voice_client.is_playing():
 
@@ -392,7 +392,7 @@ async def resume(ctx):
     serverName = ctx.guild.name
     channelID = ctx.channel.id
     channelName = ctx.channel.name
-    post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
+    await post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
 
     if ctx.voice_client and ctx.voice_client.is_paused():
 
@@ -430,7 +430,7 @@ async def skip(ctx):
     serverName = ctx.guild.name
     channelID = ctx.channel.id
     channelName = ctx.channel.name
-    post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
+    await post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
 
     if ctx.voice_client and (ctx.voice_client.is_playing() or ctx.voice_client.is_paused()):
 
@@ -478,7 +478,7 @@ async def show_queue(ctx):
     serverName = ctx.guild.name
     channelID = ctx.channel.id
     channelName = ctx.channel.name
-    post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
+    await post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
     
     if queue:
 
@@ -520,7 +520,7 @@ async def remove(ctx, position: int):
         serverName = ctx.guild.name
         channelID = ctx.channel.id
         channelName = ctx.channel.name
-        post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
+        await post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
 
         removed_song = queue.pop(position - 1)
 
@@ -567,7 +567,7 @@ async def lolstat(ctx, *, summoner_name: str, summoner_tag:str):
     serverName = ctx.guild.name
     channelID = ctx.channel.id
     channelName = ctx.channel.name
-    post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
+    await post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
 
     initalEmbed = discord.Embed(
         title="Fetching LoL Stats...",
@@ -629,7 +629,7 @@ async def lolrank(ctx):
     serverName = ctx.guild.name
     channelID = ctx.channel.id
     channelName = ctx.channel.name
-    post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
+    await post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
 
     allPlayerDict = bot.get_lol_user_stat(ctx.guild.id)
 
@@ -667,7 +667,7 @@ async def lolrank_clear(ctx):
     serverName = ctx.guild.name
     channelID = ctx.channel.id
     channelName = ctx.channel.name
-    post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
+    await post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
 
     if ctx.guild.id not in bot.lolUserStatDict:
         await ctx.send("No player stats found.")
@@ -686,13 +686,42 @@ async def lolrank_clear(ctx):
 
     await ctx.send(embed=removedEmbed)
 
+async def wordle_player_time_logic(ctx):
+
+    if ctx.author.name not in bot.wordleGuesses:
+        return
+
+    playerInfoDict = bot.wordleGuesses[ctx.author.name]
+    current_score = playerInfoDict['playerScore']
+    if playerInfoDict['playgroundEmbed'] is not None:
+        embedHolder = playerInfoDict['playgroundEmbed']
+    else:
+        embedHolder = None
+
+    if (playerInfoDict['gameStartTime'] + datetime.timedelta(days=1) <= datetime.datetime.now()) and (len(playerInfoDict['playerWords']) >= 1):
+        print("Game time has ended.")
+        bot.wordleGuesses[ctx.author.name] = {
+            'playerWords': [],
+            'playerGuesses': [],
+            'playerScore': current_score,
+            'gameStartTime': datetime.datetime.now(),
+            'playgroundEmbed': embedHolder,
+            'initialChannelId': ctx.channel.id,
+            'initialChannelName': ctx.channel.name,
+            'initialGuildId': ctx.guild.id,
+            'initialGuildName': ctx.guild.name
+        }
+        return 
+
+    return
+
 @bot.hybrid_command(name='wordle', help='Starts a new wordle game.')
 async def wordle(ctx, *, guess: str):
 
     if isinstance(ctx.channel, discord.DMChannel):
         await ctx.send("I can only be accessed in a server.")
         return
-
+    
     userID = ctx.author.id
     userName = ctx.author.name
     command_string = 'wordle'
@@ -702,14 +731,14 @@ async def wordle(ctx, *, guess: str):
     serverName = ctx.guild.name
     channelID = ctx.channel.id
     channelName = ctx.channel.name
-    post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
+    await post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
     
     guessTypeLetterEmojisSource = ['🟥', '🟨', '🟩']
     holderGuessTypeList = []
-    todaysDate = datetime.date.today()
-    print(todaysDate)
     isCorrect = False
     isFinished = False
+
+    await wordle_player_time_logic(ctx)
 
     if ctx.author.name in bot.wordleGuesses:
         playerInfoDict = bot.wordleGuesses[ctx.author.name]
@@ -724,29 +753,36 @@ async def wordle(ctx, *, guess: str):
         description=f"Guess the 5-letter word. \n `{ctx.author.name}` you have **6** guesses to find today's **WORDLE**."
         )
 
-        playgroundToEdit = await ctx.send(embed=playgroundEmbed)
+        try:
+            if isinstance(ctx, discord.Interaction):
+                # Defer response if not yet responded
+                if not ctx.response.is_done():
+                    await ctx.response.defer()
+                playgroundToEdit = await ctx.follow_up.send(embed=playgroundEmbed)
+            else:
+                playgroundToEdit = await ctx.send(embed=playgroundEmbed)
+        except Exception as e:
+            print(f"Error sending message: {str(e)}")
+            return
 
         playerInfoDict = {
             'playerWords': playerWordsList,
             'playerGuesses': playerGuessesList,
             'playerScore': playerScore,
-            'lastPlayData': todaysDate,
+            'gameStartTime': command_time,
             'playgroundEmbed': playgroundToEdit,
-            'initalCtxObject': ctx
+            'initialChannelId': ctx.channel.id,
+            'initialChannelName': ctx.channel.name,
+            'initialGuildId': ctx.guild.id,
+            'initialGuildName': ctx.guild.name
         }
 
         bot.wordleGuesses[ctx.author.name] = playerInfoDict
 
-    if ctx.channel.id != playerInfoDict['initalCtxObject'].channel.id:
-        if ctx.channel.guild.id == playerInfoDict['initalCtxObject'].guild.id:
-            await ctx.send(f"Please play the Wordle game in the same channel where you started the game. The channel you started: `{playerInfoDict['initalCtxObject'].channel.name}`.")
-            return
-        else:
-            await ctx.send(f"Please play the Wordle game in the same server where you started the game. The server you started: `{playerInfoDict['initalCtxObject'].guild.name}` | `#{playerInfoDict['initalCtxObject'].channel.name}`.")
-            return
+        await asyncio.sleep(3)
 
     if len(guess) != 5:
-        await ctx.send("Please enter a 5-letter word to.")
+        await ctx.send("Please enter a 5-letter word.")
         return
     elif not guess.isalpha():
         await ctx.send("Please enter a word with only alphabetic characters.")
@@ -761,27 +797,17 @@ async def wordle(ctx, *, guess: str):
         await ctx.send("Please enter a valid word.")
         return
 
+
     playerInfoDict = bot.wordleGuesses[ctx.author.name]
     holderGuessTypeList = playerInfoDict['playerGuesses']
     holderGuessedWordsList = playerInfoDict['playerWords']
     holderGuessedWordsList.append(formattedGuess)
     holderScore = playerInfoDict['playerScore']
 
+    print(datetime.datetime.now())
+    
     if len(holderGuessedWordsList) > 6:
         await ctx.send(f"Your Wordle game has ended. Try again tomorrow. Your score is: `{holderScore}`")
-        return
-
-    print(playerInfoDict['lastPlayData'] + datetime.timedelta(days=1))
-    if (playerInfoDict['lastPlayData'] + datetime.timedelta(days=1) <= todaysDate):
-        bot.wordleGuesses[ctx.author.name] = {
-            'playerWords': [],
-            'playerGuesses': [],
-            'playerScore': holderScore,
-            'lastPlayData': todaysDate,
-            'playgroundEmbed': None,
-            'initalCtxObject': None
-        }
-        await ctx.send(f"Your unfinished Wordle game has been reset. Please start a new game by `/wordle` command.")
         return
     
     correctGuessTypeList = [2, 2, 2, 2, 2]
@@ -790,6 +816,14 @@ async def wordle(ctx, *, guess: str):
         await ctx.send(f"Your Wordle game has ended. Try again tomorrow. Your score is: `{holderScore}`")
         return
 
+    if ctx.channel.id != playerInfoDict['initialChannelId']:
+        if ctx.channel.id != playerInfoDict['initialChannelId']:
+            await ctx.send(f"Please play the Wordle game in the same channel where you started the game. The channel you started: `{playerInfoDict['initialChannelName']}`.")
+            return
+        else:
+            await ctx.send(f"Please play the Wordle game in the same server where you started the game. The server you started: `{playerInfoDict['initialGuildName']}` | `#{playerInfoDict['initialChannelName']}`.")
+            return
+        
     tempList = []
 
     if isCorrect:
@@ -818,7 +852,6 @@ async def wordle(ctx, *, guess: str):
         embedMessage.add_field(name="", value=f"Your Wordle game has ended. Todays word was **{get_today_word()}**. \nTry again tomorrow. Your score is: `{holderScore}`", inline=False)
         embedMessage.set_footer(text='THIS MESSAGE WILL BE DELETED IN 10 SECONDS.')
         playerInfoDict['playerScore'] = holderScore
-        playerInfoDict['lastPlayData'] = todaysDate
         isFinished = True
 
     if isCorrect:
@@ -828,17 +861,17 @@ async def wordle(ctx, *, guess: str):
         embedMessage.add_field(name="", value=f"Your current score is: `{holderScore}`", inline=False)
         embedMessage.set_footer(text='THIS MESSAGE WILL BE DELETED IN 10 SECONDS.')
         playerInfoDict['playerScore'] = holderScore
-        playerInfoDict['lastPlayData'] = todaysDate
         isFinished = True
 
-
-    embedToDelete = playerInfoDict['playgroundEmbed']
+    if playerInfoDict['playgroundEmbed']:
+        embedToDelete = playerInfoDict['playgroundEmbed']
+    
     playerInfoDict['playerGuesses'] = holderGuessTypeList
     playerInfoDict['playerWords'] = holderGuessedWordsList
     playerInfoDict['playgroundEmbed'] = await ctx.send(embed=embedMessage)
     bot.wordleGuesses[ctx.author.name] = playerInfoDict
 
-    if embedToDelete and len(holderGuessedWordsList) > 1:
+    if embedToDelete:
         await embedToDelete.delete()
     
     if isFinished:
@@ -858,7 +891,7 @@ async def wordle(ctx, *, guess: str):
         for typeList in holderGuessTypeList:
             gameEndEmbed.add_field(name="", value=f"{''.join([guessTypeLetterEmojisSource[guess] for guess in typeList])}", inline=False)
 
-        playerInfoDict['playgroundEmbed'] =  await ctx.send(embed=gameEndEmbed)
+        await ctx.send(embed=gameEndEmbed)
         bot.wordleGuesses[ctx.author.name] = playerInfoDict
     
 
@@ -878,7 +911,7 @@ async def wordle_rankings(ctx):
     serverName = ctx.guild.name
     channelID = ctx.channel.id
     channelName = ctx.channel.name
-    post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
+    await post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
 
     allPlayerDict = bot.wordleGuesses
 

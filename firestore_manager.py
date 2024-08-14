@@ -8,8 +8,9 @@ cred = credentials.Certificate('halifileks-discordbot-firebase-adminsdk.json')
 firebase_admin.initialize_app(cred)
 db = firestore.client()
 
-def post_command_data(user_id, user_name, command_string, command_time, input_string, server_id, command_server_name, channel_id, channel_name):
+async def post_command_data(user_id, user_name, command_string, command_time, input_string, server_id, command_server_name, channel_id, channel_name):
     """Posts command data to Firestore database."""
+    
     doc_ref = db.collection('commands_logs').document()
     doc_ref.set({
         'ChannelName': channel_name,
