@@ -23,3 +23,52 @@ async def post_command_data(user_id, user_name, command_string, command_time, in
         'UserNickname': user_name,
         'UserID': user_id
     })
+
+async def store_user_wordle_score(user_id, user_name, score, time):
+    """Posts Wordle score data to Firestore database."""
+    
+    doc_ref = db.collection('user_wordle_scores').document(user_id)
+    doc = doc_ref.get()
+    if doc.exists:
+        doc_ref.update({
+            'Time': time,
+            'Score': score
+        })
+    else:
+        doc_ref.set({
+            'UserNickname': user_name,
+            'UserID': user_id,
+            'Score': score,
+            'Time': time
+        })
+
+async def get_user_wordle_scores(user_id):
+    """Retrieves user's Wordle scores from Firestore database."""
+    
+    doc_ref = db.collection('user_wordle_scores').document(user_id)
+    if doc_ref.get().exists:
+        
+        query = db.collection('user_wordle_scores').order_by('Time', direction=firestore.Query.DESCENDING).limit(1)
+        docs = query.get()
+        if len(docs) > 0:
+            user_data = docs[0].to_dict()
+            print(user_data)
+            return user_data.get('Score')
+        else:
+            return None
+    return None
+
+async def get_all_user_scores():
+    """Retrieves all user scores from Firestore database."""
+    
+    scores = []
+    query = db.collection('user_wordle_scores').order_by('Score', direction=firestore.Query.DESCENDING)
+    docs = query.get()
+    
+    for doc in docs:
+        user_data = doc.to_dict()
+        user_name = user_data.get('UserNickname')
+        score = user_data.get('Score')
+        scores.append((user_name, score))
+    
+    return scores

@@ -10,7 +10,7 @@ from util import join_channel
 from fetchLoLData import get_lol_info
 import datetime
 from wordleGame import get_wordle_guess, get_today_word
-from firestore_manager import post_command_data
+from firestore_manager import post_command_data, get_user_wordle_scores, store_user_wordle_score, get_all_user_scores
 
 # Load environment variables
 load_dotenv()
@@ -692,19 +692,19 @@ async def wordle_player_time_logic(ctx):
         return
 
     playerInfoDict = bot.wordleGuesses[ctx.author.name]
-    current_score = playerInfoDict['playerScore']
     if playerInfoDict['playgroundEmbed'] is not None:
         embedHolder = playerInfoDict['playgroundEmbed']
     else:
         embedHolder = None
 
-    if (playerInfoDict['gameStartTime'] + datetime.timedelta(days=1) <= datetime.datetime.now()) and (len(playerInfoDict['playerWords']) >= 1):
+    if (playerInfoDict['gameStartTime'] + datetime.timedelta(hours=22) <= datetime.datetime.now(datetime.UTC)) and (len(playerInfoDict['playerWords']) >= 1):
         print("Game time has ended.")
+        current_score = await get_user_wordle_scores(str(ctx.author.id))
         bot.wordleGuesses[ctx.author.name] = {
             'playerWords': [],
             'playerGuesses': [],
             'playerScore': current_score,
-            'gameStartTime': datetime.datetime.now(),
+            'gameStartTime': datetime.datetime.now(datetime.UTC),
             'playgroundEmbed': embedHolder,
             'initialChannelId': ctx.channel.id,
             'initialChannelName': ctx.channel.name,
@@ -729,6 +729,8 @@ async def wordle(ctx, *, guess: str):
 
     await wordle_player_time_logic(ctx)
 
+    lastScore = 0
+
     if ctx.author.name not in bot.wordleGuesses:
 
         playgroundEmbed = discord.Embed(
@@ -741,17 +743,40 @@ async def wordle(ctx, *, guess: str):
         bot.wordleGuesses[ctx.author.name] = {
             'playerWords': [],
             'playerGuesses': [],
-            'playerScore': 0,
-            'gameStartTime': datetime.datetime.now(),
+            'playerScore': lastScore,
+            'gameStartTime': datetime.datetime.now(datetime.UTC),
             'playgroundEmbed': playgroundToEdit,
             'initialChannelId': ctx.channel.id,
             'initialChannelName': ctx.channel.name,
             'initialGuildId': ctx.guild.id,
             'initialGuildName': ctx.guild.name
         }
-        await asyncio.sleep(2)
+        await asyncio.sleep(0.7)
     elif len(bot.wordleGuesses[ctx.author.name]['playerWords']) < 1:
-        await asyncio.sleep(2)
+
+        if bot.wordleGuesses[ctx.author.name]['playgroundEmbed'] is not None:
+            await bot.wordleGuesses[ctx.author.name]['playgroundEmbed'].delete()
+            print("Deleted the unfinicshedm embed playground.")
+
+        playgroundEmbed = discord.Embed(
+        title="Wordle Game",
+        color=discord.Colour.dark_purple(),
+        description=f"Guess the 5-letter word. \n`{ctx.author.name}` you have **6** guesses to find today's **WORDLE**."
+        )
+        playgroundToEdit = await ctx.send(embed=playgroundEmbed)
+
+        bot.wordleGuesses[ctx.author.name] = {
+            'playerWords': [],
+            'playerGuesses': [],
+            'playerScore': lastScore,
+            'gameStartTime': datetime.datetime.now(datetime.UTC),
+            'playgroundEmbed': playgroundToEdit,
+            'initialChannelId': ctx.channel.id,
+            'initialChannelName': ctx.channel.name,
+            'initialGuildId': ctx.guild.id,
+            'initialGuildName': ctx.guild.name
+        }
+        await asyncio.sleep(0.7)
     
 
     if len(guess) != 5:
@@ -775,9 +800,12 @@ async def wordle(ctx, *, guess: str):
     holderGuessTypeList = playerInfoDict['playerGuesses']
     holderGuessedWordsList = playerInfoDict['playerWords']
     holderGuessedWordsList.append(formattedGuess)
-    holderScore = playerInfoDict['playerScore']
+    holderScore = await get_user_wordle_scores(str(ctx.author.id))
 
-    print(datetime.datetime.now())
+    if holderScore is None:
+        holderScore = playerInfoDict['playerScore']
+
+    print(datetime.datetime.now(datetime.UTC))
     
     if len(holderGuessedWordsList) > 6:
         await ctx.send(f"Your Wordle game has ended. Try again tomorrow. Your score is: `{holderScore}`")
@@ -852,6 +880,7 @@ async def wordle(ctx, *, guess: str):
         playgroundToEdit = playerInfoDict['playgroundEmbed']
         await asyncio.sleep(10)
         await playgroundToEdit.delete()
+        playerInfoDict['playgroundEmbed'] = None
 
         gameEndEmbed = discord.Embed(
             title=f"Wordle Game of `{ctx.author.name}`",
@@ -866,12 +895,14 @@ async def wordle(ctx, *, guess: str):
 
         await ctx.send(embed=gameEndEmbed)
         bot.wordleGuesses[ctx.author.name] = playerInfoDict
+
+        await store_user_wordle_score(str(ctx.author.id), ctx.author.name, holderScore, datetime.datetime.now(datetime.UTC))
     
     userID = ctx.author.id
     userName = ctx.author.name
     command_string = 'wordle'
-    command_time = datetime.datetime.now()
-    inputString = guess
+    command_time = datetime.datetime.now(datetime.UTC)
+    inputString = formattedGuess
     serverID = ctx.guild.id
     serverName = ctx.guild.name
     channelID = ctx.channel.id
@@ -897,12 +928,14 @@ async def wordle_rankings(ctx):
     channelName = ctx.channel.name
     await post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
 
-    allPlayerDict = bot.wordleGuesses
+    allPlayerList = await get_all_user_scores()
+    allPlayerList.remove((None, 0))
+    
 
-    if not allPlayerDict:
+    if not allPlayerList:
         await ctx.send("No player stats found.")
         return
-    
+
     rankEmbed = discord.Embed(
         title="Wordle Game Rankings",
         color=discord.Colour.dark_purple(),
@@ -911,10 +944,10 @@ async def wordle_rankings(ctx):
 
     rankEmbed.set_thumbnail(url=bot.user.display_avatar.url)
     rankEmbed.set_footer(text=f"Score Range: (0-6) per game. Earlier you finish, higher the score.")
-    rankList = sorted(allPlayerDict.items(), key=lambda x: x[1]['playerScore'], reverse=True)
+    rankList = sorted(allPlayerList, key=lambda x: x[1], reverse=True)
     print(rankList)
 
-    rankEmbed.add_field(name="", value=f"{'\n'.join(f'**{idx + 1}. {player}** - `Score: {stats["playerScore"]}`' for idx, (player, stats) in enumerate(rankList))}", inline=False)
+    rankEmbed.add_field(name="", value=f"{'\n'.join(f'**{idx + 1}. {player}** - `Score: {score}`' for idx, (player, score) in enumerate(rankList))}", inline=False)
 
     await ctx.send(embed=rankEmbed)
             
