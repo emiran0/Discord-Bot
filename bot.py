@@ -722,17 +722,6 @@ async def wordle(ctx, *, guess: str):
         await ctx.send("I can only be accessed in a server.")
         return
     
-    userID = ctx.author.id
-    userName = ctx.author.name
-    command_string = 'wordle'
-    command_time = datetime.datetime.now()
-    inputString = guess
-    serverID = ctx.guild.id
-    serverName = ctx.guild.name
-    channelID = ctx.channel.id
-    channelName = ctx.channel.name
-    await post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
-    
     guessTypeLetterEmojisSource = ['🟥', '🟨', '🟩']
     holderGuessTypeList = []
     isCorrect = False
@@ -740,46 +729,30 @@ async def wordle(ctx, *, guess: str):
 
     await wordle_player_time_logic(ctx)
 
-    if ctx.author.name in bot.wordleGuesses:
-        playerInfoDict = bot.wordleGuesses[ctx.author.name]
-    else:
-        playerGuessesList = []
-        playerWordsList = []
-        playerScore = 0
+    if ctx.author.name not in bot.wordleGuesses:
 
         playgroundEmbed = discord.Embed(
         title="Wordle Game",
         color=discord.Colour.dark_purple(),
-        description=f"Guess the 5-letter word. \n `{ctx.author.name}` you have **6** guesses to find today's **WORDLE**."
+        description=f"Guess the 5-letter word. \n`{ctx.author.name}` you have **6** guesses to find today's **WORDLE**."
         )
+        playgroundToEdit = await ctx.send(embed=playgroundEmbed)
 
-        try:
-            if isinstance(ctx, discord.Interaction):
-                # Defer response if not yet responded
-                if not ctx.response.is_done():
-                    await ctx.response.defer()
-                playgroundToEdit = await ctx.follow_up.send(embed=playgroundEmbed)
-            else:
-                playgroundToEdit = await ctx.send(embed=playgroundEmbed)
-        except Exception as e:
-            print(f"Error sending message: {str(e)}")
-            return
-
-        playerInfoDict = {
-            'playerWords': playerWordsList,
-            'playerGuesses': playerGuessesList,
-            'playerScore': playerScore,
-            'gameStartTime': command_time,
+        bot.wordleGuesses[ctx.author.name] = {
+            'playerWords': [],
+            'playerGuesses': [],
+            'playerScore': 0,
+            'gameStartTime': datetime.datetime.now(),
             'playgroundEmbed': playgroundToEdit,
             'initialChannelId': ctx.channel.id,
             'initialChannelName': ctx.channel.name,
             'initialGuildId': ctx.guild.id,
             'initialGuildName': ctx.guild.name
         }
-
-        bot.wordleGuesses[ctx.author.name] = playerInfoDict
-
-        await asyncio.sleep(3)
+        await asyncio.sleep(2)
+    elif len(bot.wordleGuesses[ctx.author.name]['playerWords']) < 1:
+        await asyncio.sleep(2)
+    
 
     if len(guess) != 5:
         await ctx.send("Please enter a 5-letter word.")
@@ -893,6 +866,17 @@ async def wordle(ctx, *, guess: str):
 
         await ctx.send(embed=gameEndEmbed)
         bot.wordleGuesses[ctx.author.name] = playerInfoDict
+    
+    userID = ctx.author.id
+    userName = ctx.author.name
+    command_string = 'wordle'
+    command_time = datetime.datetime.now()
+    inputString = guess
+    serverID = ctx.guild.id
+    serverName = ctx.guild.name
+    channelID = ctx.channel.id
+    channelName = ctx.channel.name
+    await post_command_data(userID, userName, command_string, command_time, inputString, serverID, serverName, channelID, channelName)
     
 
 @bot.hybrid_command(name='wordle_rankings', help='Shows the Wordle game rankings based on scores from all servers.')
