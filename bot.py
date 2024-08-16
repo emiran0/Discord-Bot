@@ -118,6 +118,10 @@ async def help(ctx):
     helpEmbed.add_field(name="/legend", value="Responds with a legendary music YouTube link.", inline=False)
     helpEmbed.add_field(name="/halifoto", value="Posts a random photo.", inline=False)
     helpEmbed.add_field(name="/lolstat", value="Gives the win rate and KDA of the given summonner name and tag (no hashtags).", inline=False)
+    helpEmbed.add_field(name="/lolrank", value="Gives the rankings of previously checked summoner name.", inline=False)
+    helpEmbed.add_field(name="/lolrank_clear", value="Removes the stats of all users in the rankings", inline=False)
+    helpEmbed.add_field(name="/wordle", value="Starts a new wordle game.", inline=False)
+    helpEmbed.add_field(name="/worlde_rankings", value="Shows the rankings of the Wordle game.", inline=False)
     helpEmbed.add_field(name="/katil", value="Bot joins the voice channel.", inline=False)
     helpEmbed.add_field(name="/ayril", value="Bot leaves the voice channel.", inline=False)
     helpEmbed.add_field(name="/oynat", value="Searches and plays music from YouTube.", inline=False)
@@ -126,6 +130,7 @@ async def help(ctx):
     helpEmbed.add_field(name="/atla", value="Skips the currently playing song.", inline=False)
     helpEmbed.add_field(name="/sira", value="Shows the current music queue.", inline=False)
     helpEmbed.add_field(name="/siradan-cikar", value="Removes a specific song from the queue by its position.", inline=False)
+
 
     helpEmbed.set_thumbnail(url=bot.user.display_avatar.url)
     await ctx.send(embed=helpEmbed)
