@@ -756,11 +756,15 @@ async def wordle(ctx, *, guess: str):
             'initialGuildId': ctx.guild.id,
             'initialGuildName': ctx.guild.name
         }
-        await asyncio.sleep(0.7)
+        await asyncio.sleep(0.5)
     elif len(bot.wordleGuesses[ctx.author.name]['playerWords']) < 1:
 
         if bot.wordleGuesses[ctx.author.name]['playgroundEmbed'] is not None:
-            await bot.wordleGuesses[ctx.author.name]['playgroundEmbed'].delete()
+            try:
+                await bot.wordleGuesses[ctx.author.name]['playgroundEmbed'].delete()
+            except:
+                bot.wordleGuesses[ctx.author.name]['playgroundEmbed'] = None
+
             print("Deleted the unfinicshedm embed playground.")
 
         playgroundEmbed = discord.Embed(
@@ -874,7 +878,17 @@ async def wordle(ctx, *, guess: str):
     
     playerInfoDict['playerGuesses'] = holderGuessTypeList
     playerInfoDict['playerWords'] = holderGuessedWordsList
-    playerInfoDict['playgroundEmbed'] = await ctx.send(embed=embedMessage)
+    
+    try:
+        playerInfoDict['playgroundEmbed'] = await ctx.send(embed=embedMessage)
+    except:
+        errorEmbed = discord.Embed(
+            title="Error in sending the message",
+            color=discord.Colour.dark_purple(),
+            description="Please try again."
+        )
+        playerInfoDict['playgroundEmbed'] = await ctx.send(embed=errorEmbed)
+
     bot.wordleGuesses[ctx.author.name] = playerInfoDict
 
     if embedToDelete:
