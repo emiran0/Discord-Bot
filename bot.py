@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
-from discord import FFmpegPCMAudio, File, app_commands
+from discord.ui import Button, View
+from discord import FFmpegPCMAudio, File, app_commands, ButtonStyle
 import os
 import random
 from dotenv import load_dotenv
@@ -16,8 +17,8 @@ from firestore_manager import post_command_data, get_user_wordle_scores, store_u
 load_dotenv()
 TOKEN = os.getenv('DISCORD_TOKEN')
 
-FFMPEG_OPTIONS = {'options': '-vn -sn -dn -ar 48000 -ab 64k -ac 2'}
-
+FFMPEG_OPTIONS = {'options': '-vn -sn -dn -ab 64k', 'before_options':'-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5'}
+# -ar 48000 -ac 2 
 class MusicBot(commands.Bot):
 
     def __init__(self, command_prefix, intents):
@@ -29,6 +30,7 @@ class MusicBot(commands.Bot):
         self.lolUserStatDict = {}
         self.wordleGuesses = {}
         self.worldeEmbeds = {}
+        self.nowPlayingEmbedsToDelete = {}
 
     def get_queue(self, guild_id):
         if guild_id not in self.queue:
@@ -80,6 +82,54 @@ class MusicBot(commands.Bot):
     
     def remove_lol_user_stat(self, guild_id):
         self.get_server_rankings(guild_id).clear()
+
+class PlaybackControl(View):
+    def __init__(self, voice_client, ctx):
+        super().__init__()
+        self.voice_client = voice_client
+        self.ctx = ctx
+        self.guild_id = ctx.guild.id
+
+        # Pause button
+        self.pause_button = Button(label="Pause", style=ButtonStyle.red, custom_id="pause_button", emoji='⏸️')
+        self.pause_button.callback = self.pause_audio
+        self.add_item(self.pause_button)
+
+        # Resume button
+        self.resume_button = Button(label="Resume", style=ButtonStyle.green, custom_id="resume_button", disabled=True, emoji='▶️')
+        self.resume_button.callback = self.resume_audio
+        self.add_item(self.resume_button)
+
+        # Next song button
+        self.next_button = Button(label="Next Song", style=ButtonStyle.blurple, custom_id="next_song_button", emoji='⏭️')
+        self.next_button.callback = self.next_song
+        self.add_item(self.next_button)
+
+    async def pause_audio(self, interaction: discord.Interaction):
+        if self.voice_client.is_playing():
+            self.voice_client.pause()
+            self.pause_button.disabled = True
+            self.resume_button.disabled = False
+            self.next_button.disabled = False
+            await interaction.response.edit_message(view=self)
+
+    async def resume_audio(self, interaction: discord.Interaction):
+        if self.voice_client.is_paused():
+            self.voice_client.resume()
+            self.pause_button.disabled = False
+            self.resume_button.disabled = True
+            self.next_button.disabled = False
+            await interaction.response.edit_message(view=self)
+
+    async def next_song(self, interaction: discord.Interaction):
+        if self.voice_client.is_playing() or self.voice_client.is_paused():
+            self.voice_client.stop()  # This will trigger the 'after' callback which should be play_next
+            # Optionally reset all buttons to default states
+            self.pause_button.disabled = False
+            self.resume_button.disabled = True
+            self.next_button.disabled = True
+            await interaction.response.edit_message(view=self)
+            # The after callback of the voice_client.play() should handle playing the next song
 
 
 bot = MusicBot(command_prefix='/', intents=discord.Intents.all())
@@ -259,14 +309,14 @@ async def play(ctx, *, search: str):
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(f"ytsearch:{search}", download=False)['entries'][0]
+        sec_duration = info['duration'] 
         title = info['title']
         url = info['webpage_url']
         thumbnail = info['thumbnail']
-        sec_duration = info['duration'] 
 
     duration = str(datetime.timedelta(seconds = int(sec_duration)))
         
-    songTuple = (author.name, title, url, thumbnail, duration, isFirstSongPlayed)  # Store title and URL as a tuple
+    songTuple = (author.name, title, url, thumbnail, duration, isFirstSongPlayed, sec_duration)  # Store title and URL as a tuple
     bot.add_to_queue(ctx.guild.id, songTuple)
 
     if not (voice_client.is_playing() or voice_client.is_paused()):
@@ -286,7 +336,7 @@ async def play(ctx, *, search: str):
         addQueueEmbed.insert_field_at(2, name="Added by", value=f"> Added by: {author.name}", inline=True)
         addQueueEmbed.set_footer(text=f"Addded to Position: {len(bot.get_queue(ctx.guild.id))}")
 
-        await embedMessage.edit(embed=addQueueEmbed)
+        await embedMessage.edit(embed=addQueueEmbed, delete_after=10)
 
 async def play_next(ctx, embedToEdit):
 
@@ -304,6 +354,7 @@ async def play_next(ctx, embedToEdit):
 
 async def play_song(ctx, playInfo, embedToEdit):
     queue = bot.get_queue(ctx.guild.id)
+    guild_id = ctx.guild.id
     
     ydl_opts = {
         'format': 'm4a',
@@ -315,7 +366,7 @@ async def play_song(ctx, playInfo, embedToEdit):
         'quiet': False
     }
 
-    requester, title, song_url, thumbnail_url, vid_duration, isFirstSongPlayed = playInfo
+    requester, title, song_url, thumbnail_url, vid_duration, isFirstSongPlayed, secDuration = playInfo
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(song_url, download=False)
@@ -338,12 +389,24 @@ async def play_song(ctx, playInfo, embedToEdit):
     nowPlayingEmbed.set_image(url=thumbnail_url)
     nowPlayingEmbed.set_footer(text=f"Playing Next:\n > {queue[0][1] if queue else 'No more songs in queue'}")
 
+    
+    view = PlaybackControl(ctx.voice_client, ctx)
+
     if isFirstSongPlayed:
 
-        await embedToEdit.edit(embed=nowPlayingEmbed)
+        await embedToEdit.edit(embed=nowPlayingEmbed, view=view, delete_after=int(secDuration))
     else:
 
-        await ctx.send(embed=nowPlayingEmbed)
+        new_msg = await ctx.send(embed=nowPlayingEmbed, view=view)
+        if guild_id in bot.nowPlayingEmbedsToDelete:
+            old_msg = bot.nowPlayingEmbedsToDelete[guild_id]
+            if old_msg:
+                try:
+                    await old_msg.delete()
+                except:
+                    pass
+        bot.nowPlayingEmbedsToDelete[guild_id] = new_msg
+
     
 
 @bot.hybrid_command(name='durdur', help='Pauses the currently playing audio.')
@@ -373,7 +436,7 @@ async def pause(ctx):
         pauseEmbed.set_footer(text=f"Use `/devam` to resume the song.")
 
         ctx.voice_client.pause()
-        await ctx.send(embed = pauseEmbed)
+        await ctx.send(embed = pauseEmbed, delete_after=5)
     else:
         noPauseEmbed = discord.Embed(
             title="No Audio Playing",
@@ -383,7 +446,7 @@ async def pause(ctx):
         pauseEmbed.set_thumbnail(url=bot.user.display_avatar.url)
         pauseEmbed.set_footer(text=f"Use `/oynat` to play a song.")
 
-        await ctx.send(embed = noPauseEmbed)
+        await ctx.send(embed = noPauseEmbed, delete_after=5)
 
 @bot.hybrid_command(name='devam', help='Resumes the paused audio.')
 async def resume(ctx):
@@ -412,7 +475,7 @@ async def resume(ctx):
         resumeEmbed.set_thumbnail(url=bot.user.display_avatar.url)
 
         ctx.voice_client.resume()
-        await ctx.send(embed = resumeEmbed)
+        await ctx.send(embed = resumeEmbed, delete_after=5)
     else:
 
         noResumeEmbed = discord.Embed(
@@ -421,7 +484,7 @@ async def resume(ctx):
         )
 
         noResumeEmbed.set_thumbnail(url=bot.user.display_avatar.url)
-        await ctx.send(embed = noResumeEmbed)
+        await ctx.send(embed = noResumeEmbed, delete_after=5)
 
 @bot.hybrid_command(name='atla', help='Skips the currently playing song.')
 async def skip(ctx):
@@ -456,7 +519,7 @@ async def skip(ctx):
         skipEmbed.set_thumbnail(url=bot.user.display_avatar.url)
         skipEmbed.set_footer(text=f"Skipped by {ctx.author.name}")
 
-        await ctx.send(embed = skipEmbed)
+        await ctx.send(embed = skipEmbed, delete_after=5)
         ctx.voice_client.stop()  # Stopping current song will trigger play_next automatically if there are more songs in the queue
     else:
 
@@ -467,7 +530,7 @@ async def skip(ctx):
         )
 
         noSkipEmbed.set_thumbnail(url=bot.user.display_avatar.url)
-        await ctx.send(embed = noSkipEmbed)
+        await ctx.send(embed = noSkipEmbed, delete_after=5)
 
 @bot.hybrid_command(name='sira', help='Shows the current music queue.')
 async def show_queue(ctx):
@@ -494,7 +557,7 @@ async def show_queue(ctx):
             color=discord.Colour.dark_purple()
         )
 
-        queueEmbed.add_field(name="", value=f"{"\n".join(f"{idx + 1}. {title} --> `Added By : {author}`" for idx, (author,title, _, _, _, _) in enumerate(first5_queue))}", inline=False)
+        queueEmbed.add_field(name="", value=f"{"\n".join(f"{idx + 1}. {title} --> `Added By : {author}`" for idx, (author,title, _, _, _, _, _) in enumerate(first5_queue))}", inline=False)
         queueEmbed.set_thumbnail(url=bot.user.display_avatar.url)
         await ctx.send(embed=queueEmbed)
     else:
